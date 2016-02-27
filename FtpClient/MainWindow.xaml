@@ -1,0 +1,218 @@
+﻿<Window x:Class="FtpClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:FtpClient"
+        xmlns:properties="clr-namespace:FtpClient.DependencyProperties"
+        xmlns:converters="clr-namespace:FtpClient.Converters"
+        Title="MainWindow" MinHeight="439.925" MinWidth="889.179"
+        Padding="1,1,1,1"
+        Loaded="Window_Loaded"
+        ResizeMode="CanMinimize"
+        Closing="Window_Closing">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Menu Grid.Column="0" Grid.ColumnSpan="10" Grid.Row="0" Height="20" VerticalAlignment="Top" Background="#FFF5F6F7" BorderBrush="#FF569DE5" BorderThickness="0,0,0,1">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Transfer" IsEnabled="False"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Command="{x:Static local:CustomCommands.About}"/>
+            </MenuItem>
+        </Menu>
+        <StackPanel DataContext="{Binding Path=FtpService.Ftp, RelativeSource={RelativeSource AncestorLevel=1, AncestorType={x:Type Window}, Mode=FindAncestor}}" Margin="5,0,5,0" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="10" Orientation="Horizontal">
+            <TextBlock Text="Host:" Padding="1,1,1,1" Margin="5,0,5,0" VerticalAlignment="Center"/>
+            <TextBox x:Name="tb_Host" Padding="1,1,1,1" Margin="5,0,5,0" VerticalAlignment="Center" Width="100" InputMethod.IsInputMethodEnabled="False">
+                <TextBox.Style>
+                    <Style TargetType="TextBox">
+                        <Style.Triggers>
+                            <Trigger Property="Validation.HasError" Value="true">
+                                <Setter Property="ToolTip" Value="{Binding (Validation.Errors)[0].ErrorContent, Mode=OneWay, RelativeSource={RelativeSource Mode=Self}}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBox.Style>
+                <TextBox.Text>
+                    <Binding Path="Host" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                        <Binding.ValidationRules>
+                            <NotifyDataErrorValidationRule/>
+                        </Binding.ValidationRules>
+                    </Binding>
+                </TextBox.Text>
+            </TextBox>
+            <TextBlock Text="Port:" Padding="1,1,1,1" Margin="20,0,5,0" VerticalAlignment="Center"/>
+            <TextBox x:Name="tb_Port"  Style="{Binding Path=Style,ElementName=tb_Host}"  Padding="1,1,1,1" Margin="5,0,5,0" VerticalAlignment="Center" Width="70" InputMethod.IsInputMethodEnabled="False" MaxLength="5">
+                <Binding Path="Port" Mode="TwoWay" UpdateSourceTrigger="PropertyChanged">
+                    <Binding.ValidationRules>
+                        <local:PortValidationRule/>
+                        <NotifyDataErrorValidationRule/>
+                    </Binding.ValidationRules>
+                </Binding>
+            </TextBox>
+            <TextBlock Text="UserName:" Padding="1,1,1,1" Margin="20,0,5,0" VerticalAlignment="Center"/>
+            <TextBox Text="{Binding UserName, Mode=TwoWay}" Padding="1,1,1,1" Margin="5,0,5,0" VerticalAlignment="Center" Width="70"
+				IsEnabled="{Binding IsChecked, Converter={converters:BoolConverter True}, ElementName=cb_Any}"/>
+            <TextBlock Text="Password:" Padding="1,1,1,1" Margin="20,0,5,0" VerticalAlignment="Center"/>
+            <PasswordBox properties:PasswordBoxUtils.Attach="true" properties:PasswordBoxUtils.Password="{Binding Password, Mode=TwoWay}" Padding="1,1,1,1" Margin="5,0,5,0" VerticalAlignment="Center" Width="70"
+				IsEnabled="{Binding IsChecked, Converter={converters:BoolConverter True}, ElementName=cb_Any}"/>
+            <CheckBox x:Name="cb_Any" VerticalAlignment="Center" Margin="10,0,5,0" IsChecked="True" Checked="cb_Any_Checked">
+                <TextBlock Text="Anonymous" Padding="1,1,1,1" />
+            </CheckBox>
+            <Button Content="Connect" Padding="1,1,1,1" Margin="20,0,5,0" VerticalAlignment="Center" Click="btn_Connect_Click">
+                <Button.IsEnabled>
+                    <MultiBinding Converter="{converters:ConnectButtonStatusConverter}" Mode="OneWay">
+                        <Binding Path="(Validation.HasError)" ElementName="tb_Host" Mode="OneWay"/>
+                        <Binding Path="(Validation.HasError)" ElementName="tb_Port" Mode="OneWay"/>
+                    </MultiBinding>
+                </Button.IsEnabled>
+            </Button>
+            <Button Content="Resume" Padding="1,1,1,1" Margin="20,0,5,0" VerticalAlignment="Center" Click="btn_Resume_Click"
+                    IsEnabled="{Binding Path=UnCompletedMissions.Count, RelativeSource={RelativeSource Mode=FindAncestor, AncestorLevel=1, AncestorType=Window}, Converter={converters:ResumeButtomConverter}}"/>
+        </StackPanel>
+        <DataGrid x:Name="dg_Local" Grid.Column="0" Grid.ColumnSpan="5" Grid.Row="2" Grid.RowSpan="5" AutoGenerateColumns="False" IsReadOnly="True"
+                  MouseDoubleClick="dg_Local_MouseDoubleClick" MouseDown="dg_Local_MouseDown" RowHeight="20" Sorting="dg_Sorting"
+			      SelectionMode="Single" Margin="5,0,18,0" CanUserResizeRows="False"
+                  VirtualizingStackPanel.IsVirtualizing="True"
+                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                  ItemsSource="{Binding Path=LocalValue, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window, AncestorLevel=1}, IsAsync=True}">
+            <DataGrid.CellStyle>
+                <Style TargetType="{x:Type DataGridCell}">
+                    <Setter Property="BorderThickness" Value="0"/>
+                </Style>
+            </DataGrid.CellStyle>
+            <DataGrid.Columns>
+                <DataGridTemplateColumn MinWidth="150" Width="150" Header="Name" CanUserSort="True" SortMemberPath="Name">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Name}" properties:TextBlockUtils.AutoTooltip="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn MinWidth="150" Header="Size" CanUserSort="True" SortMemberPath="Size">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Size}" properties:TextBlockUtils.AutoTooltip="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn MinWidth="150" Header="Date Modified" CanUserSort="True" SortMemberPath="Modified">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Modified, StringFormat=\{0:yyyy-MM-dd HH:mm:ss\}}" properties:TextBlockUtils.AutoTooltip="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <DataGrid x:Name="dg_Remote" Grid.Column="5" Grid.ColumnSpan="5" Grid.Row="2" Grid.RowSpan="5" AutoGenerateColumns="False" IsReadOnly="True"
+			      MouseDoubleClick="dg_Remote_MouseDoubleClick" MouseDown="dg_Remote_MouseDown" RowHeight="20" Sorting="dg_Sorting"
+			      SelectionMode="Single" Margin="18,0,5,0" CanUserResizeRows="False"
+                  VirtualizingStackPanel.IsVirtualizing="True"
+                  VirtualizingStackPanel.VirtualizationMode="Recycling"
+                  ItemsSource="{Binding Path=RemoteValue, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window, AncestorLevel=1}, IsAsync=True}">
+            <DataGrid.CellStyle>
+                <Style TargetType="{x:Type DataGridCell}">
+                    <Setter Property="BorderThickness" Value="0"/>
+                </Style>
+            </DataGrid.CellStyle>
+            <DataGrid.Columns>
+                <DataGridTemplateColumn MinWidth="150" Width="150" Header="Name" CanUserSort="True" SortMemberPath="Name">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Name}" properties:TextBlockUtils.AutoTooltip="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn MinWidth="150" Header="Size" CanUserSort="True" SortMemberPath="Size">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Size}" properties:TextBlockUtils.AutoTooltip="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn MinWidth="150" Header="Date Modified" CanUserSort="True" SortMemberPath="Modified">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Path=Modified, StringFormat=\{0:yyyy-MM-dd HH:mm:ss\}}" properties:TextBlockUtils.AutoTooltip="True"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <ListView x:Name="lv_results" Grid.Row="7" Grid.RowSpan="3" Grid.Column="0" Grid.ColumnSpan="10" Margin="5,0,5,10"
+                  ItemsSource="{Binding Path=FtpResults, RelativeSource={RelativeSource Mode=FindAncestor, AncestorLevel=1,AncestorType=Window}, IsAsync=True}"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling">
+            <ListView.Resources>
+            </ListView.Resources>
+            <ListView.View>
+                <GridView>
+                    <GridView.Columns>
+                        <GridViewColumn  Header="Status" Width="100">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=ResultType}" TextTrimming="WordEllipsis"
+                                               properties:TextBlockUtils.AutoTooltip="True"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Info/Source" Width="200">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Info}" TextTrimming="WordEllipsis"
+                                               properties:TextBlockUtils.AutoTooltip="True"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Target" Width="200">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Target}" TextTrimming="WordEllipsis"
+                                               properties:TextBlockUtils.AutoTooltip="True"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Process" Width="100">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Process, StringFormat=\{0:F2\}%}" TextTrimming="WordEllipsis"
+                                               properties:TextBlockUtils.AutoTooltip="True"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        <GridViewColumn Header="Time" Width="150">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=Time,StringFormat=\{0:yyyy-MM-dd HH:mm:ss\}}" TextTrimming="WordEllipsis"
+                                               properties:TextBlockUtils.AutoTooltip="True"/>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView.Columns>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>
